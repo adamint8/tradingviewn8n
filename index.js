@@ -16,14 +16,15 @@ app.get('/chart', async (req, res) => {
   try {
     const browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      executablePath: '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
 
     await page.goto(chartUrl, { waitUntil: 'networkidle2', timeout: 60000 });
-    await page.waitForTimeout(8000); // זמן לטעינה
+    await page.waitForTimeout(8000); // ממתין לטעינה מלאה של הגרף
 
     const screenshotBuffer = await page.screenshot({ fullPage: true });
 
@@ -32,7 +33,10 @@ app.get('/chart', async (req, res) => {
     res.send(screenshotBuffer);
   } catch (err) {
     console.error('Error:', err.message);
-    res.status(500).json({ error: 'Failed to generate chart screenshot', details: err.message });
+    res.status(500).json({
+      error: 'Failed to generate chart screenshot',
+      details: err.message
+    });
   }
 });
 
