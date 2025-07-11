@@ -3,7 +3,7 @@ services:
     name: tv-chart-screenshot
     env: node
     plan: free
-    buildCommand: "npm install"
+    buildCommand: "./render-build.sh && npm install"
     startCommand: "npm start"
     autoDeploy: true
     envVars:
