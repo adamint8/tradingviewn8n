@@ -1,22 +1,27 @@
 const express = require('express');
 const puppeteer = require('puppeteer');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+const chromePath = '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome';
+
 app.get('/chart', async (req, res) => {
   const symbol = req.query.symbol || 'NASDAQ:AAPL';
   const interval = req.query.interval || 'D';
-  const indicators = req.query.indicators
-    ? req.query.indicators.split(',').map(ind => `${ind}@tv-basicstudies`).join('%2C')
-    : '';
+
+  if (!fs.existsSync(chromePath)) {
+    console.error('❌ Chrome binary not found at:', chromePath);
+    return res.status(500).json({ error: 'Chrome binary not found.' });
+  }
 
   const chartUrl = `https://www.tradingview.com/chart/?symbol=${symbol}&interval=${interval}`;
 
   try {
     const browser = await puppeteer.launch({
       headless: 'new',
-      executablePath: '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome',
+      executablePath: chromePath,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
@@ -24,7 +29,7 @@ app.get('/chart', async (req, res) => {
     await page.setViewport({ width: 1280, height: 720 });
 
     await page.goto(chartUrl, { waitUntil: 'networkidle2', timeout: 60000 });
-    await page.waitForTimeout(8000); // ממתין לטעינה מלאה של הגרף
+    await page.waitForTimeout(8000);
 
     const screenshotBuffer = await page.screenshot({ fullPage: true });
 
@@ -32,11 +37,8 @@ app.get('/chart', async (req, res) => {
     res.set('Content-Type', 'image/png');
     res.send(screenshotBuffer);
   } catch (err) {
-    console.error('Error:', err.message);
-    res.status(500).json({
-      error: 'Failed to generate chart screenshot',
-      details: err.message
-    });
+    console.error('Error generating chart:', err.message);
+    res.status(500).json({ error: 'Failed to generate chart screenshot', details: err.message });
   }
 });
 
@@ -45,5 +47,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Server is listening at http://0.0.0.0:${port}`);
+  console.log(`✅ Server is listening at http://0.0.0.0:${port}`);
 });
